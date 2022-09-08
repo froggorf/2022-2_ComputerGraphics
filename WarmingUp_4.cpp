@@ -1,3 +1,9 @@
+/*
+1P(RED) - WASD 로 이동
+2P(BLUE) - 방향키 로 이동
+gotoxy를 활용해 화면 깜빡임 제어(덮어씌우는 식으로)
+*/
+
 #include <Windows.h>
 #include <conio.h>
 #include <iostream>
@@ -32,7 +38,7 @@ int main() {
 
 	BOOL check_1p=false, check_2p = false, colide = false;
 	while (1) {
-		system("cls");
+		//system("cls");
 		gotoxy(0, 0);
 		printf("1P - WASD / 2P - 방향키");
 		gotoxy(0, 2);
@@ -58,15 +64,27 @@ int main() {
 			//system("pause");
 			check_1p = false;
 		}
+		else {
+			gotoxy(0, 10);
+			printf("                            ");
+		}
 		if (check_2p) {
 			gotoxy(0, 11);
 			printf("2P 범위 넘어감!!");
 			check_2p = false;
 		}
+		else {
+			gotoxy(0, 11);
+			printf("                      ");
+		}
 		if (colide) {
 			gotoxy(0, 12);
 			printf("둘이 충돌함!!");
 			colide = false;
+		}
+		else {
+			gotoxy(0, 12);
+			printf("                        ");
 		}
 		switch (_getch()) {
 		case 'W':
