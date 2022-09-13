@@ -9,13 +9,13 @@
 void gotoxy(int x, int y);
 
 enum GameLevel { EASY = 1, NORMAL = 2, HARD = 3, HELL = 4, INFORM = 5 };
-enum KeyBoard {UP=72,DOWN = 80, LEFT = 75, RIGHT = 77, ENTER = 13};
+enum KeyBoard { UP = 72, DOWN = 80, LEFT = 75, RIGHT = 77, ENTER = 13 };
 
 class Game {
 public:
-	
 
-	
+
+
 };
 std::random_device rd;
 std::uniform_int_distribution<int> uid(1, 12);
@@ -24,7 +24,7 @@ public:
 	char card[4][6];
 	int select_x = 0, select_y = 0;
 	int click_x[2] = { -1,-1 }, click_y[2] = { -1,-1 };
-	
+
 	int level = 0;
 	int combo = 0;
 	int fail = 0;
@@ -97,7 +97,7 @@ public:
 				card[randx2][randy2] = temp;
 			}
 			break;
-			
+
 		}
 	}
 	void DrawCard() {
@@ -106,10 +106,14 @@ public:
 			for (int i = 0; i < 4; ++i) {
 				for (int j = 0; j < 2; ++j) {
 					gotoxy(1 + 4 * j, 1 + 2 * i);
-					if ('a' <= card[i][j] && card[i][j] <= 'z') 
+					if ('a' <= card[i][j] && card[i][j] <= 'z')
 						std::cout << " * ";
-					else 
+					else {
+						SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), card[i][j] - 'A' + 1);
 						std::cout << " " << card[i][j] << " ";
+						SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+					}
+
 				}
 			}
 			if (click_x[0] != -1 && click_y[0] != -1) {
@@ -137,8 +141,11 @@ public:
 					gotoxy(1 + 4 * j, 1 + 2 * i);
 					if ('a' <= card[i][j] && card[i][j] <= 'z')
 						std::cout << " * ";
-					else
+					else {
+						SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), card[i][j] - 'A' + 1);
 						std::cout << " " << card[i][j] << " ";
+						SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+					}
 				}
 			}
 			if (click_x[0] != -1 && click_y[0] != -1) {
@@ -165,8 +172,11 @@ public:
 					gotoxy(1 + 4 * j, 1 + 2 * i);
 					if ('a' <= card[i][j] && card[i][j] <= 'z')
 						std::cout << " * ";
-					else
+					else {
+						SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), card[i][j] - 'A' + 1);
 						std::cout << " " << card[i][j] << " ";
+						SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
+					}
 				}
 			}
 			if (click_x[0] != -1 && click_y[0] != -1) {
@@ -201,17 +211,17 @@ public:
 				if (card[select_y][select_x] == card[click_y[0]][click_x[0]]) {//카드가 맞을 경우
 					card[select_y][select_x] -= ('z' - 'Z');
 					card[click_y[0]][click_x[0]] -= ('z' - 'Z');
-					
+
 					double rate = 1;
 					for (int i = 0; i < combo; ++i) {
 						rate *= 1.3;
 					}
-					score += (BaseScore*rate);
+					score += (BaseScore * rate);
 
 					if (fail == 0) ++combo;
 					else combo = 1;
 					fail = 0;
-					
+
 				}
 				else {//카드가 틀릴 경우
 					combo = 0;
@@ -221,7 +231,7 @@ public:
 
 				}
 				click_x[1] = select_x, click_y[1] = select_y;
-				
+
 				if (fail >= 5) {
 					//어려움과 헬난이도에서 fail 5번 이상일경우 돌려버리도록 설정
 					if (level == HARD || level == HELL) {
@@ -239,9 +249,9 @@ public:
 					else gotoxy(25, 7);
 					printf("■■■■■■■■■■■■■■■■■■■■");
 					for (int j = i; j > -1; --j) {
-						if (level == EASY) gotoxy(9+19-j, 7);
-						else if (level == NORMAL || level == HARD) gotoxy(17+19-j, 7);
-						else gotoxy(25+19-j, 7);
+						if (level == EASY) gotoxy(9 + 19 - j, 7);
+						else if (level == NORMAL || level == HARD) gotoxy(17 + 19 - j, 7);
+						else gotoxy(25 + 19 - j, 7);
 						printf(" ");
 					}
 					Sleep(sleepTime / 20);
@@ -249,7 +259,7 @@ public:
 				click_x[0] = -1, click_y[0] = -1;
 				click_x[1] = -1, click_y[1] = -1;
 			}
-			
+
 		}
 	}
 	void PressArrow(int presskey) {
@@ -307,21 +317,21 @@ public:
 };
 
 
-void GameMenu(int&, Game&,Board& board);
+void GameMenu(int&, Game&, Board& board);
 void DrawBoard(int x, int y, int levelselect);
-void DrawStatus(int x, int y, int levelselect,Board& board);
+void DrawStatus(int x, int y, int levelselect, Board& board);
 void DrawFrame(int levelselect, Board& board);
 BOOL gamestart = false;
 int main() {
 	Board board;
 	Game game;
-	
+
 	BOOL flag_answer = false;
 	int levelselect = EASY;
-	
+
 	while (1) {
 		if (!gamestart) { //게임 시작 전 메뉴
-			GameMenu(levelselect, game,board);
+			GameMenu(levelselect, game, board);
 
 		}
 		else {			 //게임 시작 후
@@ -343,7 +353,7 @@ int main() {
 				}
 				continue;
 			}
-			
+
 			if (board.life <= 0) {
 				gotoxy(0, 15);
 				printf("게임 오버! 다시 도전해주세요.\n");
@@ -363,11 +373,11 @@ int main() {
 				continue;
 			}
 
-			DrawFrame(levelselect,board);
+			DrawFrame(levelselect, board);
 			board.DrawCard();
 			if (flag_answer) {
 				gotoxy(0, 10);
-				int max=0;
+				int max = 0;
 				switch (board.level) {
 				case EASY: max = 2; break;
 				case NORMAL: case HARD: max = 4; break;
@@ -388,7 +398,7 @@ int main() {
 			gotoxy(0, 9);
 			if (board.click_x[0] == -1 && board.click_y[0] == -1) printf("첫 번째 카드 선택");
 			else printf("두 번째 카드 선택");
-		
+
 			switch (_getch()) {
 			case 'Q':
 			case 'q':
@@ -423,13 +433,15 @@ int main() {
 				printf("                             \n");
 				printf("                             \n");
 				break;
+
+			case '-':
+				board.life -= 1;
 			}
-				
 		}
 	}
 }
 
-void GameMenu(int& levelselect, Game& game,Board& board) {
+void GameMenu(int& levelselect, Game& game, Board& board) {
 	gotoxy(0, 0);
 	printf("카드 짝 찾기 게임 - 2019180031 이윤석\n");
 	printf("**난이도를 선택해주세요** // 방향키 조정 - 엔터 누르기 // Q/q - 종료\n");
@@ -559,11 +571,11 @@ void DrawBoard(int x, int y, int levelselect) {
 	}
 }
 
-void DrawStatus(int x, int y, int levelselect,Board& board) {
+void DrawStatus(int x, int y, int levelselect, Board& board) {
 	gotoxy(x, y);
 	printf("─────────┬──────────┐");
 	gotoxy(x, y + 1);
-	
+
 	switch (levelselect) {
 	case EASY:
 		printf("EASY/life│%4d / 50 │", board.life);
@@ -581,11 +593,11 @@ void DrawStatus(int x, int y, int levelselect,Board& board) {
 	gotoxy(x, y + 2);
 	printf("─────────┼──────────┤");
 	gotoxy(x, y + 3);
-	printf("  score  │%10d│",board.score);
+	printf("  score  │%10d│", board.score);
 	gotoxy(x, y + 4);
 	printf("─────────┼──────────┤");
 	gotoxy(x, y + 5);
-	if(board.level==EASY||board.level==NORMAL)
+	if (board.level == EASY || board.level == NORMAL)
 		printf("combo:%3d│fail:%5d│", board.combo, board.fail);
 	else
 		printf("combo:%3d│fail:%3d/5│", board.combo, board.fail);
@@ -597,7 +609,7 @@ void DrawStatus(int x, int y, int levelselect,Board& board) {
 	printf("────────────────────┘");
 }
 
-void DrawFrame(int levelselect,Board& board) {
+void DrawFrame(int levelselect, Board& board) {
 	switch (levelselect) {
 	case EASY:
 		DrawBoard(0, 0, levelselect);
