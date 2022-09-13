@@ -40,6 +40,8 @@ public:
 };
 int myVertex::count = 0;
 
+int save_count = 0;
+myVertex saveVertex[10];
 void DrawListFrame(int x, int y, myVertex v[10]);
 void PrintMenual(int x, int y);
 void PrintMyVertex(myVertex v[10]);
@@ -60,9 +62,10 @@ int main() {
 		std::cin >> c;
 		switch (c) {
 		case '+':
+			if (save_count != 0) save_count = 0;
 			if (v[0].count == 10) {
 				BOOL checkEmpty = false;
-				for (int i = 9; i >-1; --i) {
+				for (int i = 9; i > -1; --i) {
 					if (!v[i].is_valid) {
 						if (std::cin >> x) {
 							if (std::cin >> y) {
@@ -70,7 +73,7 @@ int main() {
 									v[i].x = x;
 									v[i].y = y;
 									v[i].z = z;
-									v[i].length= sqrt(x * x + y * y + z * z);
+									v[i].length = sqrt(x * x + y * y + z * z);
 									v[i].is_valid = true;
 									checkEmpty = true;
 								}
@@ -93,6 +96,7 @@ int main() {
 			}
 			break;
 		case '-':
+			if (save_count != 0) save_count = 0;
 			if (v[0].count == 0) {
 				gotoxy(0, 24);
 				printf("에러! - 데이터가 한개도 안 담겨있어 삭제를 진행할 수 없습니다. 추가 후 입력해주세요");
@@ -106,9 +110,10 @@ int main() {
 			break;
 		case 'E':
 		case 'e':
+			if (save_count != 0) save_count = 0;
 			if (v[0].count == 10) {
 				BOOL checkEmpty = false;
-				for (int i = 0; i <v[0].count; ++i) {
+				for (int i = 0; i < v[0].count; ++i) {
 					if (!v[i].is_valid) {
 						if (std::cin >> x) {
 							if (std::cin >> y) {
@@ -134,7 +139,7 @@ int main() {
 			if (std::cin >> x) {
 				if (std::cin >> y) {
 					if (std::cin >> z) {
-						for (int i = v[0].count - 1; i >-1; --i) {
+						for (int i = v[0].count - 1; i > -1; --i) {
 							v[i + 1] = v[i];
 						}
 						++v[0].count;
@@ -155,6 +160,7 @@ int main() {
 				system("pause");
 				break;
 			}
+			if (save_count != 0) save_count = 0;
 			for (int i = 0; i < v[0].count; ++i) {
 				if (v[i].is_valid) {
 					v[i].is_valid = false;
@@ -164,6 +170,7 @@ int main() {
 			break;
 		case 'L':
 		case 'l':
+			if (save_count != 0) save_count = 0;
 			gotoxy(0, 24);
 			std::cout << "전체 갯수 : " << v[0].count;
 			gotoxy(0, 25);
@@ -178,113 +185,132 @@ int main() {
 			break;
 		case 'C':
 		case 'c':
-			for (int i = v[0].count-1; i >-1; --i) {
+			if (save_count != 0) save_count = 0;
+			for (int i = v[0].count - 1; i > -1; --i) {
 				if (v[0].count == 0) break;
 				v[i].InitmyVertex();
 			}
 			break;
 		case 'M':
 		case 'm':
-		{
-			double max = 0;
-			int idx = -1;
-			for (int i = 0; i < v[0].count; ++i) {
-				if (v[i].is_valid) {
-					if (v[i].length > max) {
-						max = v[i].length;
-						idx = i;
+			if (save_count != 0) save_count = 0;
+			{
+				double max = 0;
+				int idx = -1;
+				for (int i = 0; i < v[0].count; ++i) {
+					if (v[i].is_valid) {
+						if (v[i].length > max) {
+							max = v[i].length;
+							idx = i;
+						}
 					}
 				}
+				if (idx == -1 || v[0].count == 0) {
+					gotoxy(0, 24);
+					printf("현재 리스트가 비워져있어 ( d로인해 빈칸으로만 있는 데이터가 있어 ) 출력되는 점이 없습니다.\n");
+					gotoxy(0, 25);
+					system("pause");
+				}
+				else {
+					gotoxy(0, 24);
+					std::cout << "가장 먼 점: v[" << idx << "] - (" << v[idx].x << ", " << v[idx].y << ", " << v[idx].z << ") , 거리 - " << v[idx].length;
+					gotoxy(0, 25);
+					system("pause");
+				}
 			}
-			if (idx == -1 || v[0].count == 0) {
-				gotoxy(0, 24);
-				printf("현재 리스트가 비워져있어 ( d로인해 빈칸으로만 있는 데이터가 있어 ) 출력되는 점이 없습니다.\n");
-				gotoxy(0, 25);
-				system("pause");
-			}
-			else {
-				gotoxy(0, 24);
-				std::cout << "가장 먼 점: v[" << idx << "] - (" << v[idx].x << ", " << v[idx].y << ", " << v[idx].z << ") , 거리 - " << v[idx].length;
-				gotoxy(0, 25);
-				system("pause");
-			}
-		}
 			break;
 		case 'N':
 		case 'n':
-		{
-			double min = 1000000;
-			int idx = -1;
-			for (int i = 0; i < v[0].count; ++i) {
-				if (v[i].is_valid) {
-					if (v[i].length < min) {
-						min = v[i].length;
-						idx = i;
+			if (save_count != 0) save_count = 0;
+			{
+				double min = 1000000;
+				int idx = -1;
+				for (int i = 0; i < v[0].count; ++i) {
+					if (v[i].is_valid) {
+						if (v[i].length < min) {
+							min = v[i].length;
+							idx = i;
+						}
 					}
 				}
+				if (idx == -1 || v[0].count == 0) {
+					gotoxy(0, 24);
+					printf("현재 리스트가 비워져있어 ( d로인해 빈칸으로만 있는 데이터가 있어 ) 출력되는 점이 없습니다.\n");
+					gotoxy(0, 25);
+					system("pause");
+				}
+				else {
+					gotoxy(0, 24);
+					std::cout << "가장 가까운 점: v[" << idx << "] - (" << v[idx].x << ", " << v[idx].y << ", " << v[idx].z << ") , 거리 - " << v[idx].length;
+					gotoxy(0, 25);
+					system("pause");
+				}
 			}
-			if (idx == -1 || v[0].count == 0) {
-				gotoxy(0, 24);
-				printf("현재 리스트가 비워져있어 ( d로인해 빈칸으로만 있는 데이터가 있어 ) 출력되는 점이 없습니다.\n");
-				gotoxy(0, 25);
-				system("pause");
-			}
-			else {
-				gotoxy(0, 24);
-				std::cout << "가장 가까운 점: v[" << idx << "] - (" << v[idx].x << ", " << v[idx].y << ", " << v[idx].z << ") , 거리 - " << v[idx].length;
-				gotoxy(0, 25);
-				system("pause");
-			}
-		}
 			break;
 		case 'S':
 		case 's':
-			if (v[0].count == 0) {
-				gotoxy(0, 24);
-				printf("현재 리스트에 담겨져 있는 자료가 없어 정렬을 진행할 수 없습니다.\n");
-				system("pause");
-				break;
-			}
-			{
-				myVertex tempv[10];
-				double min=100000;
-				int idx = -1;
-				int temp_count = 0;
-				int check_count = v[0].count;
-				for (int i = 0; i < v[0].count; ++i) {
-					if (!v[i].is_valid) check_count-= 1;
+			if (save_count == 0) {
+				if (v[0].count == 0) {
+					gotoxy(0, 24);
+					printf("현재 리스트에 담겨져 있는 자료가 없어 정렬을 진행할 수 없습니다.\n");
+					system("pause");
+					break;
 				}
-				while (1) {
-					if (check_count == 0)break;
+				{
 					for (int i = 0; i < v[0].count; ++i) {
-						if (v[i].is_valid) {
-							if (v[i].length < min) {
-								min = v[i].length;
-								idx = i;
-							}
-						}
-
+						saveVertex[i] = v[i];
 					}
-					tempv[temp_count].x = v[idx].x;
-					tempv[temp_count].y = v[idx].y;
-					tempv[temp_count].z = v[idx].z;
-					tempv[temp_count].length = sqrt(v[idx].x * v[idx].x + v[idx].y * v[idx].y + v[idx].z * v[idx].z);
-					tempv[temp_count].is_valid = true;
-					temp_count++;
-					v[idx].is_valid = false;
-					v[idx].x = 0; v[idx].y = 0; v[idx].z = 0;
-					--check_count;
-					min = 100000000;
-					idx = -1;
+					save_count = v[0].count;
 				}
-				for (int i = 0; i < temp_count; ++i) {
-					v[i] = tempv[i];
+				{
+					myVertex tempv[10];
+					double min = 100000;
+					int idx = -1;
+					int temp_count = 0;
+					int check_count = v[0].count;
+					for (int i = 0; i < v[0].count; ++i) {
+						if (!v[i].is_valid) check_count -= 1;
+					}
+					while (1) {
+						if (check_count == 0)break;
+						for (int i = 0; i < v[0].count; ++i) {
+							if (v[i].is_valid) {
+								if (v[i].length < min) {
+									min = v[i].length;
+									idx = i;
+								}
+							}
+
+						}
+						tempv[temp_count].x = v[idx].x;
+						tempv[temp_count].y = v[idx].y;
+						tempv[temp_count].z = v[idx].z;
+						tempv[temp_count].length = sqrt(v[idx].x * v[idx].x + v[idx].y * v[idx].y + v[idx].z * v[idx].z);
+						tempv[temp_count].is_valid = true;
+						temp_count++;
+						v[idx].is_valid = false;
+						v[idx].x = 0; v[idx].y = 0; v[idx].z = 0;
+						--check_count;
+						min = 100000000;
+						idx = -1;
+					}
+					for (int i = 0; i < temp_count; ++i) {
+						v[i] = tempv[i];
+					}
+					v[0].count = temp_count;
+
 				}
-				v[0].count = temp_count;
-				
 			}
-			
-			
+			else {
+				for (int i = 0; i < save_count; ++i) {
+					v[i] = saveVertex[i];
+				}
+				v[0].count = save_count;
+				save_count = 0;
+			}
+
+
+
 			break;
 		case 'Q':
 		case 'q':
