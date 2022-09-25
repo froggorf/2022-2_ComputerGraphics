@@ -7,13 +7,11 @@
 R/r - 기존값 초기화
 A/a - 전체 초기화
 T/t - 타이머 시작
+G/g - 중력 적용
 S/s - 타이머 멈춤
 + / - - 타이머 속도 증가/감소 
 
 우클릭 하면 살리기 -> 전부다 숨기고서 n번만에 몇개까지 찾아내는지 하는거도 만들어보기
-
-무빙 형태 중력 적용 한거(탱탱볼처럼) / 
-
 
 */
 
@@ -27,8 +25,8 @@ S/s - 타이머 멈춤
 #define MaxRectNum 100
 #define RectSize 0.1
 #define Delta 0.05
-
-enum MovingShape{DIAGONAL = 0};
+#define GravitySpeed -0.004
+enum MovingShape{DIAGONAL = 0, GRAVITY = 1};
 
 int TimerSpeed = 50;
 std::random_device rd;
@@ -69,6 +67,8 @@ GLvoid Mouse(int, int, int, int);
 GLvoid MouseMove(int, int);
 GLboolean myIntersectRect(myRect, myRect);
 GLvoid RectMove(int);
+GLvoid CheckOutOfRange(myRect&);
+GLvoid RectGravity(myRect&);
 myRect rect[MaxRectNum];
 myRect eraseRect;
 myRect reviveRect;
@@ -114,6 +114,7 @@ GLvoid drawScene() {//--- 콜백 함수: 그리기 콜백 함수
 			glRectf(rect[i].left, rect[i].bottom, rect[i].left + rect[i].width, rect[i].bottom + rect[i].height);
 		}
 	}
+	
 
 	if (grab_erase) {//
 		glColor3f(1.0f, 1.0f, 1.0f);
@@ -144,17 +145,19 @@ GLvoid KeyBoard(unsigned char key, int x, int y) {
 		for (int i = 0; i < MaxRectNum; ++i) {
 			rect[i].live = true;
 		}
+		
 		break;
 	case 'A':
 	case 'a':
 		for (int i = 0; i < MaxRectNum; ++i) {
 			rect[i].initMyRect();
+			if (rect[i].dx == 0)rect[i].dy = 0;
 		}
+		
 		break;
 	case 'T':
 	case 't':
 		if (!flag_timer) {
-			printf("t눌림\n");
 			for (int i = 0; i < MaxRectNum; ++i) {
 				rect[i].dx = Delta, rect[i].dy = Delta;
 				if (uid(rd) == 0) rect[i].dx *= -1;
@@ -184,6 +187,21 @@ GLvoid KeyBoard(unsigned char key, int x, int y) {
 			TimerSpeed = 50;
 		}
 		break;
+	case 'G':
+	case 'g':	//중력 작용
+		if (!flag_timer) {
+			for (int i = 0; i < MaxRectNum; ++i) {
+				rect[i].dx = 0;
+				rect[i].dy = 0;
+			}
+
+			glutTimerFunc(TimerSpeed, RectMove, GRAVITY);
+			flag_timer = true;
+		}
+		else {
+			printf("이미 타이머가 켜져있어 실행할 수 없습니다.\n");
+		}
+		break;
 	case '-':
 		TimerSpeed += 10;
 		if (TimerSpeed > 200) {
@@ -191,7 +209,7 @@ GLvoid KeyBoard(unsigned char key, int x, int y) {
 			TimerSpeed = 50;
 		}
 		break;
-
+		
 	}
 	glutPostRedisplay();
 }
@@ -199,8 +217,8 @@ GLvoid KeyBoard(unsigned char key, int x, int y) {
 GLvoid Mouse(int button, int state, int x, int y) {
 	//button - GLUT_LEFT_BUTTON / MIDDLE / RIGHT ...
 	//state - GLUT_UP, GLUT_DOWN
-	double w = (double)WIDTH / 2;
-	double h = (double)HEIGHT / 2;
+	double w = (double) glutGet(GLUT_WINDOW_WIDTH) / 2;
+	double h = (double) glutGet(GLUT_WINDOW_HEIGHT) / 2;
 	double glut_x = (x - w) / w;
 	double glut_y = ((y - h) / h) * -1;
 	grab_erase = false;
@@ -229,8 +247,8 @@ GLvoid Mouse(int button, int state, int x, int y) {
 }
 
 GLvoid MouseMove(int x, int y) {
-	double w = (double)WIDTH / 2;
-	double h = (double)HEIGHT / 2;
+	double w = (double)glutGet(GLUT_WINDOW_WIDTH) / 2;
+	double h = (double)glutGet(GLUT_WINDOW_HEIGHT) / 2;
 	double glut_x = (x - w) / w;
 	double glut_y = ((y - h) / h) * -1;
 
@@ -282,12 +300,21 @@ GLvoid CheckOutOfRange(myRect& rect) {
 }
 
 GLvoid RectMove(int value) {
-	if(value ==DIAGONAL)
-	for (int i = 0; i < MaxRectNum; ++i) {
-		rect[i].left += rect[i].dx;
-		rect[i].bottom += rect[i].dy;
-		CheckOutOfRange(rect[i]);
+	if (value == DIAGONAL) {
+		for (int i = 0; i < MaxRectNum; ++i) {
+			rect[i].left += rect[i].dx;
+			rect[i].bottom += rect[i].dy;
+			CheckOutOfRange(rect[i]);
+		}
 	}
+	else if (value == GRAVITY) {
+		for (int i = 0; i < MaxRectNum; ++i) {
+			rect[i].bottom += rect[i].dy;
+			RectGravity(rect[i]);
+		}
+		
+	}
+	
 	glutPostRedisplay();
 
 	if (stop_timer) {
@@ -316,4 +343,25 @@ GLboolean myIntersectRect(myRect r1, myRect r2) {
 	
 	return FALSE;
 
+}
+
+GLvoid RectGravity(myRect& rect) {
+	
+	rect.bottom += rect.dy;
+
+	if (0 < rect.dy && rect.dy <= GravitySpeed * GravitySpeed) {
+		rect.dy = 0;
+		return;
+	}
+	if (rect.bottom - (-1.0) <= 0.01) {
+		rect.bottom = -1.0;
+		rect.dy *= -0.7;
+	}
+	else {
+		rect.dy += GravitySpeed;
+	}
+	
+	if (rect.bottom + rect.height >= 1.0) {
+		rect.bottom = 1.0 - rect.height;
+	}
 }
