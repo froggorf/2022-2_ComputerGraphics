@@ -7,12 +7,14 @@
 R/r - 기존값 초기화
 A/a - 전체 초기화
 T/t - 타이머 시작
-G/g - 중력 적용
 S/s - 타이머 멈춤
 + / - - 타이머 속도 증가/감소 
 
-우클릭 하면 살리기 -> 전부다 숨기고서 n번만에 몇개까지 찾아내는지 하는거도 만들어보기
-
+---------------추가목록---------------
+G/g - 중력 적용
+우클릭 하면 살리기
+휠 누르면 물살 흐르듯이(였는데 튕겨내는 느낌으로 진행하기로)
+-------------------------------------
 */
 
 #include <iostream>
@@ -26,7 +28,7 @@ S/s - 타이머 멈춤
 #define RectSize 0.1
 #define Delta 0.05
 #define GravitySpeed -0.004
-enum MovingShape{DIAGONAL = 0, GRAVITY = 1};
+enum MovingShape{DIAGONAL = 0, GRAVITY = 1, FLOWING = 2};
 
 int TimerSpeed = 50;
 std::random_device rd;
@@ -39,14 +41,14 @@ public:
 	double width=RectSize, height= RectSize;
 	double r = rand_rgb(rd), g = rand_rgb(rd), b = rand_rgb(rd);
 	GLboolean live = true;
-	double dx = Delta, dy = Delta;
+	double dx = 0, dy = 0;
 	static int count;
 	myRect() {
 		left = rand_pos(rd), bottom = rand_pos(rd);
 		width = RectSize, height = RectSize;
 		r = rand_rgb(rd), g = rand_rgb(rd), b = rand_rgb(rd);
 		live = true;
-		dx = Delta, dy = Delta;
+		dx = 0, dy = 0;
 		if (uid(rd) == 0)dx *= -1;
 		if (uid(rd) == 0)dy *= -1;
 	}
@@ -69,12 +71,19 @@ GLboolean myIntersectRect(myRect, myRect);
 GLvoid RectMove(int);
 GLvoid CheckOutOfRange(myRect&);
 GLvoid RectGravity(myRect&);
+GLvoid WindowCursorToGl(int w_x, int w_y, double& gl_x, double& gl_y);
+GLvoid GLCursorToWindow(double gl_x, double gl_y, int& w_x, int& w_y);
+
 myRect rect[MaxRectNum];
 myRect eraseRect;
 myRect reviveRect;
+myRect flowRect;
+
+double old_gl_x, old_gl_y;
 
 GLboolean grab_erase = false;
 GLboolean grab_revive = false;
+GLboolean grab_flow = false;
 GLboolean flag_timer = false;
 void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정 
 { //--- 윈도우 생성하기
@@ -124,6 +133,11 @@ GLvoid drawScene() {//--- 콜백 함수: 그리기 콜백 함수
 	if (grab_revive) {
 		glColor3f(0.0f, 0.0f, 0.0f);
 		glRectf(reviveRect.left, reviveRect.bottom, reviveRect.left + reviveRect.width, reviveRect.bottom + reviveRect.height);
+	}
+
+	if (grab_flow) {
+		glColor3f(0.0f, 0.0f, 1.0f);
+		glRectf(flowRect.left, flowRect.bottom, flowRect.left + flowRect.width, flowRect.bottom + flowRect.height);
 	}
 	glutSwapBuffers(); // 화면에 출력하기
 }
@@ -177,6 +191,10 @@ GLvoid KeyBoard(unsigned char key, int x, int y) {
 		if (flag_timer) {
 			stop_timer = true;
 			flag_timer = false;
+
+			for (int i = 0; i < MaxRectNum; ++i) {
+				rect[i].dx = 0; rect[i].dy = 0;
+			}
 		}
 		
 		break;
@@ -217,17 +235,16 @@ GLvoid KeyBoard(unsigned char key, int x, int y) {
 GLvoid Mouse(int button, int state, int x, int y) {
 	//button - GLUT_LEFT_BUTTON / MIDDLE / RIGHT ...
 	//state - GLUT_UP, GLUT_DOWN
-	double w = (double) glutGet(GLUT_WINDOW_WIDTH) / 2;
-	double h = (double) glutGet(GLUT_WINDOW_HEIGHT) / 2;
-	double glut_x = (x - w) / w;
-	double glut_y = ((y - h) / h) * -1;
+	double gl_x, gl_y;
+	WindowCursorToGl(x, y, gl_x, gl_y);
 	grab_erase = false;
 	grab_revive = false;
+	grab_flow = false;
 	switch (button) {
 	case GLUT_LEFT_BUTTON:
 		if (state == GLUT_DOWN) {
-			eraseRect.left = glut_x - RectSize;
-			eraseRect.bottom = glut_y - RectSize;
+			eraseRect.left = gl_x - RectSize;
+			eraseRect.bottom = gl_y - RectSize;
 			eraseRect.width = RectSize * 2;
 			eraseRect.height = RectSize * 2;
 			grab_erase = true;
@@ -235,26 +252,40 @@ GLvoid Mouse(int button, int state, int x, int y) {
 		break;
 	case GLUT_RIGHT_BUTTON:
 		if (state == GLUT_DOWN) {
-			reviveRect.left = glut_x - RectSize;
-			reviveRect.bottom = glut_y - RectSize;
+			reviveRect.left = gl_x - RectSize;
+			reviveRect.bottom = gl_y - RectSize;
 			reviveRect.width = RectSize * 2;
 			reviveRect.height = RectSize * 2;
 			grab_revive = true;
 		}
+		break;
+	case GLUT_MIDDLE_BUTTON:
+		if (state == GLUT_DOWN) {
+			//if (flag_timer) break;	//원래는 막아야하나 어색하므로 그냥 안막음 - 의도치않은 현상에 대한 문제점은 다소 있음
+			for (int i = 0; i < MaxRectNum; ++i) {
+				rect[i].dx = 0; rect[i].dy = 0;
+			}
+			flowRect.left = gl_x - RectSize;
+			flowRect.bottom = gl_y - RectSize;
+			flowRect.width = RectSize * 3;
+			flowRect.height = RectSize * 3;
+			grab_flow = true;
+			old_gl_x = gl_x, old_gl_y = gl_y;
+			glutTimerFunc(TimerSpeed, RectMove, FLOWING);
+			flag_timer = true;
+		}
+
 		break;
 	}
 	glutPostRedisplay();
 }
 
 GLvoid MouseMove(int x, int y) {
-	double w = (double)glutGet(GLUT_WINDOW_WIDTH) / 2;
-	double h = (double)glutGet(GLUT_WINDOW_HEIGHT) / 2;
-	double glut_x = (x - w) / w;
-	double glut_y = ((y - h) / h) * -1;
-
+	double gl_x, gl_y;
+	WindowCursorToGl(x, y, gl_x, gl_y);
 	if (grab_erase) {
-		eraseRect.left = glut_x - RectSize;
-		eraseRect.bottom = glut_y - RectSize;
+		eraseRect.left = gl_x - RectSize;
+		eraseRect.bottom = gl_y - RectSize;
 		eraseRect.width = RectSize * 2;
 		eraseRect.height = RectSize * 2;
 
@@ -265,8 +296,8 @@ GLvoid MouseMove(int x, int y) {
 		}
 	}
 	else if (grab_revive) {
-		reviveRect.left = glut_x - RectSize;
-		reviveRect.bottom = glut_y - RectSize;
+		reviveRect.left = gl_x - RectSize;
+		reviveRect.bottom = gl_y - RectSize;
 		reviveRect.width = RectSize * 2;
 		reviveRect.height = RectSize * 2;
 
@@ -274,6 +305,23 @@ GLvoid MouseMove(int x, int y) {
 			if (myIntersectRect(rect[i], reviveRect)) {
 				rect[i].live = true;
 			}
+		}
+	}
+	else if (grab_flow) {
+		flowRect.left = gl_x - RectSize;
+		flowRect.bottom = gl_y - RectSize;
+		flowRect.width = RectSize * 3;
+		flowRect.height = RectSize * 3;
+
+		{//애들 dx dy 설정
+			for (int i = 0; i < MaxRectNum; ++i) {
+				if (myIntersectRect(rect[i], flowRect)) {
+					rect[i].dx += (gl_x - old_gl_x)/3;
+					rect[i].dy += (gl_y - old_gl_y)/3;
+				}
+			}
+			old_gl_x = gl_x;
+			old_gl_y = gl_y;
 		}
 	}
 	
@@ -309,16 +357,35 @@ GLvoid RectMove(int value) {
 	}
 	else if (value == GRAVITY) {
 		for (int i = 0; i < MaxRectNum; ++i) {
-			rect[i].bottom += rect[i].dy;
+			rect[i].bottom += rect[i].dy;		//잘못 들어간 코드이나, 넣은 쪽이 좀 더 시원하게 떨어지는 느낌이 있어 이대로 진행
 			RectGravity(rect[i]);
 		}
 		
+	}
+	else if (value == FLOWING) {
+		for (int i = 0; i < MaxRectNum; ++i) {
+			rect[i].left += rect[i].dx;
+			rect[i].bottom += rect[i].dy;
+			rect[i].dx *=0.8;
+			rect[i].dy *=0.8;
+			if (-0.0005 <= rect[i].dx && rect[i].dx <= 0.0005) rect[i].dx = 0;
+			if (-0.0005 <= rect[i].dy && rect[i].dy <= 0.0005) rect[i].dy = 0;
+			CheckOutOfRange(rect[i]);
+		}
+		if (!grab_flow) {
+			int check = true;
+			for (int i = 0; i < MaxRectNum; ++i) {
+				if (rect[i].dx != 0 || rect[i].dy != 0) check = false;
+			}
+			if (check) stop_timer = true;
+		}
 	}
 	
 	glutPostRedisplay();
 
 	if (stop_timer) {
 		stop_timer = false;
+		flag_timer = false;
 		return;
 	}
 	glutTimerFunc(TimerSpeed, RectMove, value);
@@ -346,9 +413,7 @@ GLboolean myIntersectRect(myRect r1, myRect r2) {
 }
 
 GLvoid RectGravity(myRect& rect) {
-	
 	rect.bottom += rect.dy;
-
 	if (0 < rect.dy && rect.dy <= GravitySpeed * GravitySpeed) {
 		rect.dy = 0;
 		return;
@@ -364,4 +429,17 @@ GLvoid RectGravity(myRect& rect) {
 	if (rect.bottom + rect.height >= 1.0) {
 		rect.bottom = 1.0 - rect.height;
 	}
+}
+
+GLvoid WindowCursorToGl(int w_x, int w_y, double& gl_x, double& gl_y) {
+	double w = (double)glutGet(GLUT_WINDOW_WIDTH) / 2;
+	double h = (double)glutGet(GLUT_WINDOW_HEIGHT) / 2;
+	gl_x = (w_x - w) / w;
+	gl_y = ((w_y - h) / h) * -1;
+}
+GLvoid GLCursorToWindow(double gl_x, double gl_y, int& w_x, int& w_y) {
+	double w = (double)glutGet(GLUT_WINDOW_WIDTH) / 2;
+	double h = (double)glutGet(GLUT_WINDOW_HEIGHT) / 2;
+	w_x = gl_x * w + w;
+	w_y = -gl_y * h + h;
 }
