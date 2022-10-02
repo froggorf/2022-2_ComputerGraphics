@@ -163,10 +163,12 @@ void TimerFunc(int value) {
 		++pointNum;
 
 		if (degree >= 360 * 3) {
-			circle_x += 2*(0.002*(360*3/8));
+			circle_x += 2*(0.002*(360*3/8))+0.002*10;
+			circle_y -= 0.002 * 10;
 			glutTimerFunc(TimerSpeed, TimerFunc, 1);
 			degree += 180;
-			radius -= 0.002*5;
+			degree -=8;
+			//radius -= 0.002*6;
 			
 			return;
 		}
