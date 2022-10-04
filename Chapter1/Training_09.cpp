@@ -185,7 +185,6 @@ void TimerFunc(int value) {
 
 		if (degree <= 180) {
 			timer_off = true;
-			return;
 		}
 	}
 
