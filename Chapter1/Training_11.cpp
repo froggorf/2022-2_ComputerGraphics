@@ -18,7 +18,7 @@ but 방식은 아직 이해가 안됨 다시 읽어보자.
 #define WIDTH 800
 #define HEIGHT 600
 #define GrabSize 0.03 // 점으로 인식되는 범위 설정
-#define PolygonNum 4
+#define PolygonNum 7
 char* filetobuf(const char* file);
 GLvoid drawScene(GLvoid);
 GLvoid Reshape(int w, int h);
@@ -114,6 +114,9 @@ GLvoid drawScene() {
 
 	glBindVertexArray(VAO);
 	glDrawArrays(GL_LINE_LOOP, 0, PolygonNum);
+
+	glPointSize(10.0);
+	glDrawArrays(GL_POINTS, 0, PolygonNum);
 
 	glutSwapBuffers(); // 화면에 출력하기
 }
