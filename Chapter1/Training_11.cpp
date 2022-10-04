@@ -132,7 +132,22 @@ GLvoid KeyBoard(unsigned char key, int x, int y) {
 	case 'q':
 		glutLeaveMainLoop();
 		break;
-
+	case 'A':
+	case 'a':
+		if (PolygonNum != 4) {
+			for (int i = 0; i < PolygonNum; ++i) {
+				shape[i][0] = urd_pos(rd);
+				shape[i][1] = urd_pos(rd);
+				color[i][0] = color[i][1] = color[i][2] = 0.0;
+			}
+		}
+		else {
+			shape[0][0] = 0.5;	shape[0][1] = 0.5;
+			shape[1][0] = -0.5;	shape[1][1] = 0.5;
+			shape[2][0] = -0.5;	shape[2][1] = -0.5;
+			shape[3][0] = 0.5;	shape[3][1] = -0.5;
+		}
+		break;
 	}
 
 	glutPostRedisplay();
