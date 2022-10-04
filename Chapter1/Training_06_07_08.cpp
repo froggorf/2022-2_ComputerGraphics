@@ -13,6 +13,7 @@
 #define TimerSpeed 30	
 #define MaxDeltaSpeed 0.05
 #define MinDeltaSpeed 0.015
+#define ParticleNum 50
 char* filetobuf(const char* file);
 GLvoid drawScene(GLvoid);
 GLvoid Reshape(int w, int h);
@@ -20,6 +21,15 @@ GLvoid KeyBoard(unsigned char key, int x, int y);
 GLvoid Mouse(int, int, int, int);
 GLvoid MouseMove(int, int);
 GLvoid WindowCursorToGl(int w_x, int w_y, double& gl_x, double& gl_y);
+
+std::uniform_real_distribution<GLfloat> urd(0.0f, 1.0f);
+class Particle {
+public:
+	GLfloat shape[ParticleNum][3];
+	GLfloat dx[ParticleNum], dy[ParticleNum];
+	GLfloat color[ParticleNum][3];
+};
+Particle particle[2];
 
 void make_vertexShaders();
 void make_fragmentShaders();
@@ -35,7 +45,6 @@ GLfloat plus_size = 0.1;
 GLfloat rect_size = 0.4;
 void ChangePlusSize();
 std::random_device rd;
-std::uniform_real_distribution<GLfloat> urd(0.0f, 1.0f);
 std::uniform_real_distribution<GLfloat> Delta(MinDeltaSpeed, MaxDeltaSpeed);
 std::uniform_int_distribution<int> uid(0, 1);
 
@@ -125,10 +134,12 @@ public:
 	}
 	
 };
-
+GLvoid MakeParticle(myTriangle);
 myTriangle tri[MaxTriNum];
 GLuint VAO[MaxTriNum], VBO_shape[MaxTriNum], VBO_color[MaxTriNum];
 GLuint VAO_rect, VBO_rect_shape, VBO_rect_color;
+GLuint VAO_particle[2], VBO_particle_shape[2], VBO_particle_color[2];
+GLvoid DrawParticle();
 void CheckBounce(myTriangle& tri);
 void CheckInside(myTriangle& tri);
 void CheckZigzag(myTriangle& tri);
@@ -152,6 +163,14 @@ void main(int argc, char** argv)
 		std::cout << "GLEW Initialized\n";
 	}
 
+	for (int i = 0; i < ParticleNum; ++i) {
+		particle[0].color[i][0] = urd(rd);
+		particle[0].color[i][1] = urd(rd);
+		particle[0].color[i][2] = urd(rd);
+		particle[1].color[i][0] = urd(rd);
+		particle[1].color[i][1] = urd(rd);
+		particle[1].color[i][2] = urd(rd);
+	}
 	InitShader();
 	glGenVertexArrays(MaxTriNum, VAO);
 	glGenBuffers(MaxTriNum, VBO_shape);
@@ -159,6 +178,10 @@ void main(int argc, char** argv)
 	glGenBuffers(1, &VAO_rect);
 	glGenBuffers(1, &VBO_rect_shape);
 	glGenBuffers(1, &VBO_rect_color);
+	glGenVertexArrays(2, VAO_particle);
+	glGenBuffers(2, VBO_particle_shape);
+	glGenBuffers(2, VBO_particle_color);
+
 	InitBuffer();
 
 	glutDisplayFunc(drawScene); // 출력 함수의 지정
@@ -181,7 +204,7 @@ GLvoid drawScene() {
 		tri[i].Init_Shape();
 	}
 	InitBuffer();
-
+	//glUseProgram(s_program);
 
 	for (int i = 0; i < MaxTriNum; ++i) {
 		glBindVertexArray(VAO[i]);
@@ -192,8 +215,9 @@ GLvoid drawScene() {
 			glLineWidth(5.0);
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		}
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawArrays(GL_TRIANGLES, 0,3);	
 	}
+
 	//-------------------------
 	if (select_training_num == 8) {
 		GLfloat rect_shape[4][3] = {
@@ -224,6 +248,8 @@ GLvoid drawScene() {
 		glBindVertexArray(VAO_rect);
 		glLineWidth(5.0);
 		glDrawArrays(GL_LINE_LOOP, 0, 4);
+
+		DrawParticle();
 	}
 	
 	
@@ -309,6 +335,10 @@ GLvoid KeyBoard(unsigned char key, int x, int y) {
 		if (flag_timer)timer_off = true;
 		select_training_num = 8;
 		plus_size = 0.1;
+		particle[0].shape[0][0] = 0;
+		particle[1].shape[0][0] = 0;
+		particle[0].dx[0] = 0;
+		particle[1].dy[0] = 0;
 		Init_first_tri();
 		break;
 	case 'O':
@@ -408,7 +438,7 @@ GLvoid InitBuffer() {
 		glBindVertexArray(VAO[i]);
 
 		glBindBuffer(GL_ARRAY_BUFFER, VBO_shape[i]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(tri[i].shape), tri[i].shape, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(tri[i].shape), tri[i].shape, GL_STREAM_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(GLfloat), 0);
 		glEnableVertexAttribArray(0);
 
@@ -417,8 +447,6 @@ GLvoid InitBuffer() {
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
 		glEnableVertexAttribArray(1);
 	}
-	
-	
 }
 
 GLvoid InitShader() {
@@ -533,6 +561,12 @@ void TriMove(int value) {
 				CheckZigzag(tri[i]);
 			}
 		}
+		for (int i = 0; i < 2; ++i) {
+			for (int j = 0; j < ParticleNum; ++j) {
+				particle[i].shape[j][0] += particle[i].dx[j];
+				particle[i].shape[j][1] += particle[i].dy[j];
+			}
+		}
 	}
 
 	
@@ -578,6 +612,7 @@ void CheckBounce(myTriangle& tri) {
 			tri.y -= (tri.shape[0][1] - 1);
 		}
 		tri.dy *= -1;
+		
 	}
 
 	if (over_down) {
@@ -629,6 +664,7 @@ void CheckInside(myTriangle& tri) {
 				tri.direction = LEFT;
 				tri.dx *= -1;
 				tri.Init_Shape();
+				MakeParticle(tri);
 				return;
 			}
 		}
@@ -640,6 +676,7 @@ void CheckInside(myTriangle& tri) {
 				tri.direction = RIGHT;
 				tri.dx *= -1;
 				tri.Init_Shape();
+				MakeParticle(tri);
 				return;
 			}
 		}
@@ -657,6 +694,7 @@ void CheckInside(myTriangle& tri) {
 				tri.direction = DOWN;
 				tri.dy *= -1;
 				tri.Init_Shape();
+				MakeParticle(tri);
 				return;
 			}
 		}
@@ -666,8 +704,9 @@ void CheckInside(myTriangle& tri) {
 			if (myPtInRect(tri.shape[i][0], tri.shape[i][1], -rect_size, rect_size, rect_size, -rect_size)) {
 				tri.y = rect_size + tri.size;
 				tri.direction = UP;
-				tri.dy *= -1;
 				tri.Init_Shape();
+				tri.dy *= -1;
+				MakeParticle(tri);
 				return;
 			}
 		}
@@ -719,4 +758,85 @@ void CheckZigzag(myTriangle& tri) {
 		
 		
 	}
+}
+
+std::uniform_real_distribution<GLfloat> urd_delta(0.0f, 0.005f);
+
+GLint WhoseThatTriangle(myTriangle g_tri) {
+	if (g_tri.shape[0][0] == tri[0].shape[0][0] && g_tri.direction == tri->direction)
+		return 0;
+	else return 1;
+}
+GLvoid MakeParticle(myTriangle tri) {
+	int trinum = WhoseThatTriangle(tri);
+
+	switch (tri.direction) {
+	case UP:
+		for (int i = 0; i < ParticleNum; ++i) {
+			particle[trinum].shape[i][0] = tri.x;
+			particle[trinum].shape[i][1] = rect_size;
+			particle[trinum].dx[i] = urd_delta(rd);
+			if (uid(rd) == 0) particle[trinum].dx[i] *= -1;
+			particle[trinum].dy[i] = urd_delta(rd);
+		}
+		break;
+	case DOWN:
+		for (int i = 0; i < ParticleNum; ++i) {
+			particle[trinum].shape[i][0] = tri.x;
+			particle[trinum].shape[i][1] = -rect_size;
+			particle[trinum].dx[i] = urd_delta(rd);
+			if (uid(rd) == 0) particle[trinum].dx[i] *= -1;
+			particle[trinum].dy[i] = -urd_delta(rd);
+		}
+		break;
+	case LEFT:
+		for (int i = 0; i < ParticleNum; ++i) {
+			particle[trinum].shape[i][0] = -rect_size;
+			particle[trinum].shape[i][1] = tri.y;
+			particle[trinum].dx[i] = -urd_delta(rd);
+			particle[trinum].dy[i] = urd_delta(rd);
+			if (uid(rd) == 0) particle[trinum].dy[i] *= -1;
+		}
+		break;
+	case RIGHT:
+		for (int i = 0; i < ParticleNum; ++i) {
+			particle[trinum].shape[i][0] = rect_size;
+			particle[trinum].shape[i][1] = tri.y;
+			particle[trinum].dx[i] = urd_delta(rd);
+			particle[trinum].dy[i] = urd_delta(rd);
+			if (uid(rd) == 0) particle[trinum].dy[i] *= -1;
+		}
+		break;
+	}
+}
+GLvoid DrawParticle() {
+	/*glBindVertexArray(VAO[i]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_shape[i]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(tri[i].shape), tri[i].shape, GL_STREAM_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_color[i]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(tri[i].color), tri[i].color, GL_STATIC_DRAW);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+	glEnableVertexAttribArray(1);*/
+
+	for (int i = 0; i < 2; ++i) {
+		glBindVertexArray(VAO_particle[i]);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO_particle_shape[i]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(particle[i].shape), particle[i].shape, GL_STREAM_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+		glEnableVertexAttribArray(0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, VBO_particle_color[i]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(particle[i].color), particle[i].color, GL_STREAM_DRAW);
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+		glEnableVertexAttribArray(1);
+
+		glPointSize(5.0);
+		if(particle[i].shape[0][0]!=0) glDrawArrays(GL_POINTS, 0, ParticleNum);
+	}
+	
 }
